@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indigenous Communities Map</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        #map {
+            height: 600px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: 8px solid #fef3c7;
+            outline: 2px solid #92400e;
+        }
+        .custom-popup .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            padding: 0;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        .custom-popup .leaflet-popup-content {
+            margin: 0;
+            width: 300px !important;
+        }
+        .custom-popup .leaflet-popup-tip {
+            background: white;
+        }
+        .community-card {
+            transition: all 0.3s ease;
+            border: 2px solid #fef3c7;
+        }
+        .community-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            border-color: #f59e0b;
+        }
+        .custom-icon {
+            background-color: #fef3c7;
+            border: 3px solid #92400e;
+            border-radius: 50%;
+            width: 40px !important;
+            height: 40px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .custom-icon i {
+            color: #92400e;
+            font-size: 18px;
+        }
+        .legend {
+            background: rgba(255,255,255,0.9) !important;
+            border-radius: 12px !important;
+            padding: 12px !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+            border: 2px solid #fef3c7;
+        }
+        .legend h4 {
+            color: #92400e;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .legend-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #fef3c7;
+            border: 2px solid #92400e;
+            border-radius: 50%;
+        }
+        .legend-icon i {
+            color: #92400e;
+            font-size: 12px;
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+            }
+        }
+    </style>
+</head>
+<body class="bg-amber-50 font-sans">
+    <div class="container mx-auto px-4 py-8">
+        <header class="mb-8 text-center">
+            <h1 class="text-4xl font-bold text-amber-800 mb-2">Indigenous Communities</h1>
+            <p class="text-amber-600">Exploring cultures and challenges around the world</p>
+            <div class="mt-4 flex justify-center">
+                <div class="bg-amber-100 text-amber-800 px-4 py-2 rounded-full text-sm flex items-center">
+                    <i class="fas fa-globe-americas mr-2"></i>
+                    <span>Currently showing 15 indigenous communities</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="mb-8 bg-white p-6 rounded-xl shadow-md relative">
+            <div class="absolute -top-3 -right-3 bg-amber-500 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg">
+                <i class="fas fa-map-marked-alt"></i>
+            </div>
+            <div id="map"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            </div>
+
+        <footer class="text-center text-sm text-amber-600 mt-12 pb-8">
+            <p>Made with <i class="fas fa-heart text-amber-500"></i> to honor indigenous cultures worldwide</p>
+            <p class="mt-1">Data is for demonstration purposes only</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize the map
+            const map = L.map('map').setView([12.8797, 121.7740], 5); // Adjusted zoom for better initial overview
+
+            // Add tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 18,
+            }).addTo(map);
+
+            // Custom icon function
+            function createCustomIcon() {
+                const icon = L.divIcon({
+                    className: 'custom-icon pulse',
+                    html: '<i class="fas fa-users"></i>',
+                    iconSize: [40, 40],
+                    iconAnchor: [20, 40],
+                    popupAnchor: [0, -40]
+                });
+                return icon;
+            }
+
+            // Indigenous communities data with updated image URLs
+            const communities = [
+                // Philippines
+                {
+                    name: "Igorot",
+                    location: [16.7500, 120.9500],
+                    country: "Philippines",
+                    region: "Cordillera",
+                    image: "img/the-old-igorots-in-banaue.jpg", // Banaue Rice Terraces, often associated with Igorot people
+                    challenges: "Land grabbing, mining operations threatening ancestral domains, cultural erosion due to modernization."
+                },
+                {
+                    name: "Lumad",
+                    location: [7.1907, 125.4553],
+                    country: "Philippines",
+                    region: "Mindanao",
+                    image: "img/Women_in_traditional_Manobo_dress_(Kaamulan_Festival_2017,_Bukidnon,_Philippines).jpg", // Talaandig people (a Lumad group)
+                    challenges: "Militarization, displacement due to conflict, loss of ancestral lands to agribusiness."
+                },
+                {
+                    name: "Aeta",
+                    location: [15.4700, 120.5900],
+                    country: "Philippines",
+                    region: "Central Luzon",
+                    image: "img/p190.jpg", // Aeta family
+                    challenges: "Discrimination, lack of access to education and healthcare, displacement from ancestral lands."
+                },
+                {
+                    name: "Mangyan",
+                    location: [12.7000, 121.1000],
+                    country: "Philippines",
+                    region: "Mindoro",
+                    image: "img/rsz_6.jpg", // Mangyan woman weaving
+                    challenges: "Land rights issues, poverty, limited access to basic services, cultural marginalization."
+                },
+                {
+                    name: "Badjao",
+                    location: [5.9167, 120.9167],
+                    country: "Philippines",
+                    region: "Sulu Archipelago",
+                    image: "img/BADJAO-1536x916.jpg", // Badjao (Bajau Laut) children on a boat
+                    challenges: "Poverty, statelessness, discrimination, loss of traditional fishing grounds."
+                },
+                {
+                    name: "T'boli",
+                    location: [6.5000, 124.8500],
+                    country: "Philippines",
+                    region: "South Cotabato",
+                    image: "img/family.webp", // T'boli woman in traditional attire
+                    challenges: "Cultural appropriation, tourism impacts, land disputes with settlers."
+                },
+                {
+                    name: "Ifugao",
+                    location: [16.8333, 121.1667],
+                    country: "Philippines",
+                    region: "Cordillera",
+                    image: "img/01_Ifugao-Intangibleheritage-Arts-Society.jpg", // Ifugao people in traditional costumes
+                    challenges: "Climate change affecting rice terraces, youth migration, commercialization of culture."
+                },
+                {
+                    name: "Subanen",
+                    location: [7.8000, 123.5000],
+                    country: "Philippines",
+                    region: "Zamboanga Peninsula",
+                    image: "img/Subanen_-_Mount_Malindang.jpg", // Subanen ritual dance
+                    challenges: "Mining impacts, logging, armed conflict in ancestral domains."
+                },
+                {
+                    name: "Palawan Tribes",
+                    location: [9.5167, 118.4000],
+                    country: "Philippines",
+                    region: "Palawan",
+                    image: "img/Screenshot 2025-05-13 184603.png", // Tagbanua children (one of Palawan tribes)
+                    challenges: "Tourism pressures, mining threats, loss of traditional knowledge."
+                },
+                {
+                    name: "Ivatan",
+                    location: [20.4500, 121.9667],
+                    country: "Philippines",
+                    region: "Batanes",
+                    image: "img/tumblr_36f55075baeec9e26e28d1533cda2953_04df1d88_1280.jpg", // Chavayan Village, Batanes (Ivatan stone houses)
+                    challenges: "Climate change impacts, limited economic opportunities, cultural preservation."
+                },
+
+                // International
+                {
+                    name: "Maori",
+                    location: [-40.9006, 174.8860],
+                    country: "New Zealand",
+                    region: "Aotearoa",
+                    image: "img/New_Zealand_-_Maori_rowing_-_8444.jpg", // Maori Haka performance
+                    challenges: "Land rights disputes, cultural appropriation, socioeconomic disparities."
+                },
+                {
+                    name: "Sami",
+                    location: [68.9639, 23.2716],
+                    country: "Norway/Sweden/Finland",
+                    region: "Sápmi",
+                    image: "img/67kzg1jsjk311.jpg", // Sami people in traditional clothing
+                    challenges: "Climate change affecting reindeer herding, land rights, cultural preservation."
+                },
+                {
+                    name: "Inuit",
+                    location: [66.1605, -153.3691], // This coordinate is more central Alaska/Yukon. Canadian Arctic is vast.
+                    // A more representative Canadian Inuit coordinate might be around [70, -90]
+                    country: "Canada/Greenland/USA/Russia", // Expanded country list for accuracy
+                    region: "Arctic",
+                    image: "img/4b945bd8d6862bb60a07f1b8c4dc8bf4.jpg", // Inuit drum dancer
+                    challenges: "Climate change, loss of sea ice, food insecurity, cultural erosion."
+                },
+                {
+                    name: "Yanomami",
+                    location: [1.0, -63.0],
+                    country: "Brazil/Venezuela",
+                    region: "Amazon",
+                    image: "img/1_uTG3xnUXWk8wOg-pIf5raw.jpg", // Yanomami people
+                    challenges: "Illegal mining, deforestation, disease, violence from outsiders."
+                },
+                {
+                    name: "San",
+                    location: [-22.5594, 17.0832],
+                    country: "Southern Africa",
+                    region: "Kalahari",
+                    image: "img/bushmen.jpg", // San people performing traditional dance
+                    challenges: "Land dispossession, poverty, discrimination, loss of hunting rights."
+                }
+            ];
+
+            // Add markers to the map and create cards
+            const cardsContainer = document.querySelector('.grid');
+
+            communities.forEach(community => {
+                // Create marker with custom icon
+                const marker = L.marker(community.location, {
+                    icon: createCustomIcon()
+                }).addTo(map);
+
+                // Create popup content
+                const popupContent = `
+                    <div class="bg-white">
+                        <img src="${community.image}" alt="${community.name}" class="w-full h-48 object-cover">
+                        <div class="p-4">
+                            <h3 class="font-bold text-lg text-amber-800">${community.name}</h3>
+                            <p class="text-sm text-gray-600 mb-2">${community.region}, ${community.country}</p>
+                            <div class="bg-amber-50 p-3 rounded-lg border border-amber-100">
+                                <h4 class="font-semibold text-amber-700 text-sm mb-1 flex items-center">
+                                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                                    Challenges:
+                                </h4>
+                                <p class="text-xs text-gray-700">${community.challenges}</p>
+                            </div>
+                            <div class="mt-3 flex justify-between text-xs">
+                                <span class="bg-amber-100 text-amber-800 px-2 py-1 rounded-full">
+                                    <i class="fas fa-users mr-1"></i> Indigenous
+                                </span>
+                                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                    <i class="fas fa-map-marker-alt mr-1"></i> ${community.region}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Bind popup to marker
+                marker.bindPopup(popupContent, {
+                    className: 'custom-popup',
+                    maxWidth: 300
+                });
+
+                // Create card element
+                const card = document.createElement('div');
+                card.className = 'community-card bg-white rounded-xl overflow-hidden shadow-md cursor-pointer';
+                card.innerHTML = `
+                    <img src="${community.image}" alt="${community.name}" class="w-full h-48 object-cover">
+                    <div class="p-4">
+                        <h3 class="font-bold text-lg text-amber-800">${community.name}</h3>
+                        <p class="text-sm text-gray-600 mb-2">${community.region}, ${community.country}</p>
+                        <div class="flex justify-between items-center mt-3">
+                            <button class="view-on-map px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-medium hover:bg-amber-200 transition flex items-center">
+                                <i class="fas fa-map-marker-alt mr-1"></i> View on map
+                            </button>
+                            <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                                <i class="fas fa-users mr-1"></i> Indigenous
+                            </span>
+                        </div>
+                    </div>
+                `;
+
+                // Add click event to card to show marker's popup
+                card.addEventListener('click', () => {
+                    map.setView(community.location, 8);
+                    marker.openPopup();
+                });
+
+                // Add card to container
+                cardsContainer.appendChild(card);
+            });
+
+            // Add a custom legend
+            const legend = L.control({ position: 'bottomright' });
+            legend.onAdd = function(map) {
+                const div = L.DomUtil.create('div', 'legend');
+                div.innerHTML = `
+                    <h4>Community Markers</h4>
+                    <div class="legend-item">
+                        <div class="legend-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <span>Indigenous Community</span>
+                    </div>
+                `;
+                return div;
+            };
+            legend.addTo(map);
+        });
+    </script>
+</body>
+</html>
